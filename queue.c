@@ -4,8 +4,46 @@
 #define MAX_STATES 1000000
 static char visited[MAX_STATES] = {0}; 
 
-extern int is_solved(struct game_state state);
-extern void generate_all_next_states(struct game_state state, struct game_state *next_states, size_t *num_next);
+
+
+static int is_solved(struct game_state state) {
+  uint8_t expected = 1;
+  for (int row = 0; row < 4; row++) {
+    for (int col = 0; col < 4; col++) {
+      if (row == 3 && col == 3) return state.tiles[row][col] == 0;
+      if (state.tiles[row][col] != expected++) return 0;
+    }
+  }
+  return 1;
+}
+
+static void generate_all_next_states(struct game_state state, struct game_state out[4], size_t *count) {
+  *count = 0;
+  if (state.empty_row > 0) {
+    out[*count] = state;
+    move_up(&out[*count]);
+    out[*count].num_steps++;
+    (*count)++;
+  }
+  if (state.empty_row < 3) {
+    out[*count] = state;
+    move_down(&out[*count]);
+    out[*count].num_steps++;
+    (*count)++;
+  }
+  if (state.empty_col > 0) {
+    out[*count] = state;
+    move_left(&out[*count]);
+    out[*count].num_steps++;
+    (*count)++;
+  }
+  if (state.empty_col < 3) {
+    out[*count] = state;
+    move_right(&out[*count]);
+    out[*count].num_steps++;
+    (*count)++;
+  }
+}
 
 void enqueue(struct queue *q, struct game_state state) {
 	size_t encoded = serialize(state); 
