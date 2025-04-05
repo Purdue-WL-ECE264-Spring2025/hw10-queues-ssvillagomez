@@ -21,7 +21,6 @@ void enqueue(struct queue *q, struct game_state state) {
 
 struct game_state dequeue(struct queue *q) { 
 	if (!q->data.head) {
-		fprintf(stderr, "Error: dequeue from empty queue\n");
   	exit(1);
  	}
 	size_t serialized = remove_from_head(&q->data);
@@ -53,7 +52,6 @@ int number_of_moves(struct game_state start) {
   	if (seen_count < MAX_STATES) {
    		seen[seen_count++] = hash;
   	} else {
-   		fprintf(stderr, "Exceeded max seen states — aborting.\n");
     	return -1;
     }
 
