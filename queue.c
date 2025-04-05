@@ -1,48 +1,17 @@
 #include "queue.h"
 #include "tile_game.h"
+#include <stdlib.h> 
 
-#define MAX_STATES 1000000
-static char visited[MAX_STATES] = {0}; 
+#define MAX_STATES 100000
 
-
-
-static int is_solved(struct game_state state) {
-  uint8_t expected = 1;
-  for (int row = 0; row < 4; row++) {
-    for (int col = 0; col < 4; col++) {
-      if (row == 3 && col == 3) return state.tiles[row][col] == 0;
-      if (state.tiles[row][col] != expected++) return 0;
-    }
-  }
-  return 1;
-}
-
-static void generate_all_next_states(struct game_state state, struct game_state out[4], size_t *count) {
-  *count = 0;
-  if (state.empty_row > 0) {
-    out[*count] = state;
-    move_up(&out[*count]);
-    out[*count].num_steps++;
-    (*count)++;
-  }
-  if (state.empty_row < 3) {
-    out[*count] = state;
-    move_down(&out[*count]);
-    out[*count].num_steps++;
-    (*count)++;
-  }
-  if (state.empty_col > 0) {
-    out[*count] = state;
-    move_left(&out[*count]);
-    out[*count].num_steps++;
-    (*count)++;
-  }
-  if (state.empty_col < 3) {
-    out[*count] = state;
-    move_right(&out[*count]);
-    out[*count].num_steps++;
-    (*count)++;
-  }
+int is_solved(struct game_state state){ 
+	int goal[4][4] = {{1,2,3,4}, {5,6,7,8}, {9,10,11,12}, {13,14,15,0}}; 
+	for(int i = 0; i < 4; i++){ 
+		for (int j = 0; j < 4; j++){ 
+			if(state.tiles[i][j] != goal[i][j]) return 0; 
+		}
+	}
+	return 1; 
 }
 
 void enqueue(struct queue *q, struct game_state state) {
@@ -51,36 +20,71 @@ void enqueue(struct queue *q, struct game_state state) {
 }
 
 struct game_state dequeue(struct queue *q) { 
-	size_t encoded = remove_from_head(&q->data); 
-	return deserialize(encoded); 
+	if (!q->data.head) {
+		fprintf(stderr, "Error: dequeue from empty queue\n");
+  	exit(1);
+ 	}
+	size_t serialized = remove_from_head(&q->data);
+  return deserialize(serialized);
 }
 
-int number_of_moves(struct game_state start) { 
-	struct queue q = {0}; 
-	uint64_t key = serialize(start); 
-	visited[key % MAX_STATES] = 1; 
-	enqueue(&q, start); 
-	
-	while(q.data.head != NULL){ 
-		struct game_state current = dequeue(&q); 
-		if(is_solved(current)){ 
-			free_list(q.data); 
-			return current.num_steps; 
-		} 
+int number_of_moves(struct game_state start) {
+	struct queue q = {0};
+	enqueue(&q, start);
 
-		struct game_state next_states[4];
-		size_t num_next = 0; 
+ 	size_t seen[MAX_STATES];
+ 	int seen_count = 0;
 
-		generate_all_next_states(current, next_states, &num_next); 
-		
-		for(size_t i = 0; i < num_next; i++){ 
-			uint64_t next_key = serialize(next_states[i]); 
-			if(!visited[next_key % MAX_STATES]){ 
-				visited[next_key % MAX_STATES] = 1; 
-				enqueue(&q, next_states[i]); 
-			} 
-		} 
-	} 
-	free_list(q.data); 
-	return -1; 
+ 	while (q.data.head) {
+  	struct game_state current = dequeue(&q);
+
+   	size_t hash = serialize(current);
+
+   	int skip = 0;
+  	for (int i = 0; i < seen_count; i++) {
+   		if (seen[i] == hash) {
+   		  skip = 1;
+  	    break;
+	    }
+  	 }
+
+ 		if (skip) continue;
+
+  	if (seen_count < MAX_STATES) {
+   		seen[seen_count++] = hash;
+  	} else {
+   		fprintf(stderr, "Exceeded max seen states — aborting.\n");
+    	return -1;
+    }
+
+  	if (is_solved(current)) {
+    	free_list(q.data);
+     	return current.num_steps;
+  	}
+ 	 	struct game_state next;
+
+		if (current.empty_row > 0) {
+    	next = current;
+   		move_down(&next);
+   		enqueue(&q, next);
+  	}
+ 		if (current.empty_row < 3) {
+  		next = current;
+     	move_up(&next);
+     	enqueue(&q, next);
+   	}
+  	if (current.empty_col > 0) {
+  		next = current;
+    	move_right(&next);
+     	enqueue(&q, next);
+  	}
+  	if (current.empty_col < 3) {
+  	 	next = current;
+    	move_left(&next);
+    	enqueue(&q, next);
+  	}
+	}
+ 	free_list(q.data);
+ 	return -1;
 }
+
