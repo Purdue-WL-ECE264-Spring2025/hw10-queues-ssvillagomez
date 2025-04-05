@@ -22,14 +22,13 @@ void insert_at_head(struct linked_list *list, size_t value) {
 void insert_at_tail(struct linked_list *list, size_t value) {
 	struct list_node *node = new_node(value); 
 	if(!node) return; 
-	
 	if(!list->head){ 
-		list->head = node; 
+		list->head = node;
 	}else{ 
 		struct list_node *cur = list->head; 
 		while(cur->next){ 
 			cur = cur->next; 
-		} 
+		}
 		cur->next = node; 
 	}
 }
